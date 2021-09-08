@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-155991615-1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag("js", new Date());
+      gtag("config", "UA-155991615-1");
+    </script>
+
+    <!-- my stuff -->
+    <meta charset="utf-8">
+    <title>ACT vaccination rates</title>
+    <meta name="author" content="Markus Mannheim">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- initial scripts -->
+    <script src="./resources/d3.v6.min.js"></script>
+    <script src="./resources/topojson.v3.min.js"></script>
+    <link href="./resources/map.css" rel="stylesheet">
+    <link href="./resources/abcLogo64.png" rel="icon">
+  </head>
+
+  <body>
+    <div id="header">First-dose vaccination rates</div>
+    <svg id="map">
+      <defs>
+          <linearGradient id="gradient" x1="0%", x2="0%", y1="100%", y2="0%"></linearGradient>
+        </defs>
+      <g id="mapGroup">
+        <path id="border"></path>
+        <g id="districts"></g>
+        <path id="water"></path>
+        <g id="legend">
+          <rect id="legendBar" x=50 y=10 width=48></rect>
+          <g id="axisGroup"></g>
+        </g>
+      </g>
+    </svg>
+    <div id="labelDiv"></div>
+    <div id="footer">Source: Department of Health</div>
+
+    <script>
+      // page elements
+      map = d3.select("#map");
+      mapGroup = d3.select("#mapGroup");
+      parks = d3.select("#parks");
+      border = d3.select("#border");
+      districts = d3.select("#districts");
+      water = d3.select("#water");
+      header = d3.select("#header");
+      footer = d3.select("#footer");
+      legend = d3.select("#legend");
+      gradient = d3.select("#gradient");
+      bar = d3.select("#legendBar");
+      axisGroup = d3.select("#axisGroup");
+      labelDiv = d3.select("#labelDiv");
+
+      // load LGA data
+      Promise.all([
+        d3.json("./data/act.topojson"),
+        d3.json("./data/districts.topojson"),
+        d3.json("./data/water.topojson")
+      ])
+        .then(function(data) {
+
+          // data
+          borderData = topojson.feature(data[0], data[0].objects.areas);
+          waterData = topojson.feature(data[2], data[2].objects.areas);
+          districtData = topojson.feature(data[1], data[1].objects.areas);
+          districtData = {
+            type: "FeatureCollection",
+            features: districtData.features
+              .map(function(d) {
+                d.properties = {
+                  name: d.properties.name,
+                  first_dose: +d.properties.first_dose
+                };
+                return d;
+              })
+          };
+
+          // data preparation
+          abcColours = [
+            "#EAF2DC", "#BFECCF", "#9BDED3", "#7ACFD4", "#5EC0CE", "#3FB2C6", "#23A3BC", "#188CAD", "#0E75A0", "#085B96", "#02408D", "#002775", "#00104B"
+          ];
+          abcColourRange = d3.extent(districtData.features, function(d) {
+            return d.properties.first_dose;
+          });
+          abcColour = d3.scaleLinear()
+            .range(abcColours)
+            .domain(abcColours.map(function(d, i) {
+              return i / (abcColours.length - 1) * (abcColourRange[1] - abcColourRange[0]) + abcColourRange[0];
+            }))
+            .interpolate(d3.interpolateRgb);
+          abcColours.forEach(function(d, i) {
+            gradient.append("stop")
+              .attr("stop-color", d)
+              .attr("offset", (i / (abcColours.length - 1) * 100) + "%");
+          });
+          scale = d3.scaleLinear()
+            .domain(abcColourRange);
+          axis = d3.axisLeft(scale)
+            .ticks(5, ".0%")
+            .tickSizeOuter(0);
+
+          // prepare map
+          projection = d3.geoConicEqualArea()
+            .parallels([-26.293056, -44.293056])
+            .rotate([-149.126944, 0]);
+          path = d3.geoPath()
+            .projection(projection);
+          water.datum(waterData);
+          border.datum(borderData);
+          districts.selectAll(".district")
+            .data(districtData.features)
+          .enter().append("path")
+            .classed("district", true)
+            .style("fill", function(d) {
+              return abcColour(d.properties.first_dose);
+            });
+          labels = labelDiv
+            .selectAll(".label")
+              .data(districtData.features)
+            .enter().append("div")
+              .classed("label", true)
+              .html(function(d) {
+                return d.properties.name + " <span>" + d3.format(".0%")(d.properties.first_dose) + "</span>";
+              });
+
+          // begin and draw
+          window.addEventListener("resize", resize);
+          d3.timeout(function() { // short pause to allow fonts to load
+            resize();
+            map.transition()
+              .duration(500)
+              .style("opacity", 1);
+          }, 500);
+        });
+
+      function resize() {
+        mapDimensions = document.getElementById("map").getBoundingClientRect();
+        width = mapDimensions.width;
+        height = mapDimensions.height;
+        projection.fitExtent([[0, 24], [width, height + 128]], districtData);
+        mapGroup.selectAll("path")
+            .attr("d", path);
+        legend.attr("transform", "translate(" + (width - 48 - 50 - 32) + ", " + (height / 3) + ")");
+        bar.attr("height", (height / 3 ) * 2 - 42);
+        scale.range([(height / 3 ) * 2 - 42, 0]);
+        axisGroup.attr("transform", "translate(50, 10)")
+          .call(axis);
+        labels.style("top", "0px")
+          .style("left", "0px")
+          .style("top", function(d) {
+            return projection(d3.geoCentroid(d))[1] - this.getBoundingClientRect().height / 2 + "px";
+          })
+          .style("left", function(d) {
+            return projection(d3.geoCentroid(d))[0] - this.getBoundingClientRect().width / 2 + "px";
+          });
+      }
+    </script>
+  </body>
+</html>

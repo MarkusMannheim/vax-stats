@@ -1,0 +1,100 @@
+/* b: #009CBF o: #F75F00 g: #00A388 --tint-1: #333; --tint-2: #666; --tint-3: #999; --tint-4: #ccc; --tint-5: #e6e6e6; --tint-6: #f2f2f2; */
+@font-face {
+ font-family: ABCSansNovaRegular;
+ src: url(../fonts/ABCSansNova-Regular.otf);
+}
+@font-face {
+ font-family: ABCSansNovaBlack;
+ src: url(../fonts/ABCSansNova-Black.otf);
+}
+@font-face {
+ font-family: ABCSansNovaLight;
+ src: url(../fonts/ABCSansNova-Light.otf);
+}
+:root {
+  font-size: 1em;
+  font-family: ABCSansNovaBlack, "Arial Black", Helvetica, sans-serif;
+  color: #333;
+  box-sizing: border-box;
+}
+body {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: .5rem;
+  margin: 0;
+  display: flex;
+  flex-flow: column;
+}
+h1, p {
+  margin: 0;
+}
+#map {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  opacity: 0;
+}
+#border {
+  fill: none;
+  stroke: #666;
+  stroke-dasharray: 3 3;
+  stroke-width: 2
+}
+#water {
+  fill: #666;
+}
+.district {
+  stroke: #666;
+  stroke-width: 2;
+}
+#header {
+  position: fixed;
+  top: 2rem;
+  left: 2rem;
+  font-size: 2rem;
+}
+#footer {
+  font-family: ABCSansNovaRegular, Helvetica, sans-serif;
+  font-weight: bold;
+  position: fixed;
+  bottom: 2rem;
+  left: 2rem;
+  color: #666e;
+}
+#legendBar {
+  fill: url(#gradient);
+  stroke: #333;
+  stroke-width: 2;
+}
+.domain {
+  stroke: none;
+}
+.tick line {
+  stroke: #333;
+  stroke-width: 2;
+}
+.tick text {
+  fill: #333;
+  font-size: 1rem;
+  font-weight: bold;
+}
+#labelDiv {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+.label {
+  position: absolute;
+  background: #333;
+  color: white;
+  padding: 2px 4px;
+  font-size: .95rem;
+}
+.label span {
+  font-family: ABCSansNovaBlack, "Arial Black", Helvetica, sans-serif;
+  color: #FFB300;
+}
